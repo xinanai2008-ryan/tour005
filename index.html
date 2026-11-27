@@ -80,11 +80,11 @@ footer { text-align:center; color:var(--sub); font-size:12px; margin-top:30px; }
     <div class="chip">比例 <b>3:15:15</b></div>
   </div>
   <div class="stats" style="margin-top:8px">
-    <div class="chip" id="roundInfo">🔁 第 1 轮</div>
-    <div class="chip">本轮已做 <b id="tDone">0</b>/<b id="tTotal">0</b>（<b id="tPct">0%</b>）</div>
+    <div class="chip" id="roundInfo">📚 全部题目</div>
+    <div class="chip">已做 <b id="tDone">0</b>/<b id="tTotal">0</b>（<b id="tPct">0%</b>）</div>
     <div class="chip">正确率 <b id="tRate">—</b></div>
   </div>
-  <button class="bigreset" id="resetTop">↺ 全部重做（自动换题型）</button>
+  <button class="bigreset" id="resetTop">↺ 清空进度，全部重做</button>
 </header>
 <div class="toolbar">
   <div class="tabs">
@@ -133,16 +133,9 @@ DATA.forEach((q, i) => {
   const key = (q.section || '') + '|' + (q.source || q.q);
   (groups[key] = groups[key] || []).push(i);
 });
-// 本轮牌组：每组优先取主打题型的变体，没有就顺延取下一个题型
-const inDeck = new Set();
-Object.values(groups).forEach(g => {
-  for (let k = 0; k < 3; k++) {
-    const t = TYPE_CYCLE[(TYPE_CYCLE.indexOf(activeType) + k) % 3];
-    const cand = g.filter(i => DATA[i].type === t);
-    if (cand.length) { cand.forEach(i => inDeck.add(i)); return; }
-  }
-});
-document.getElementById('roundInfo').textContent = '🔁 第 ' + round + ' 轮 · 主打' + TYPE_NAME[activeType];
+// 单轮模式：全部题目放入一个牌组
+const inDeck = new Set(DATA.map((_, i) => i));
+document.getElementById('roundInfo').textContent = '📚 全部题目 · 共 ' + DATA.length + ' 题';
 document.getElementById('tTotal').textContent = inDeck.size;
 document.getElementById('deckTotal').textContent = inDeck.size;
 
@@ -250,16 +243,14 @@ function refreshScore() {
   });
   Object.entries(secEls).forEach(([sec, els]) => {
     const g = secAgg[sec] || { t: 0, a: 0, c: 0 };
-    const txt = `本轮已答 ${g.a}/${g.t} · 正确率 ${g.a ? Math.round(g.c/g.a*100)+'%' : '—'}`;
+    const txt = `已答 ${g.a}/${g.t} · 正确率 ${g.a ? Math.round(g.c/g.a*100)+'%' : '—'}`;
     els.forEach(e => e.textContent = txt);
   });
   paintChips(secAgg, a, visTotal);
 }
 document.getElementById('resetTop').onclick = () => {
-  const nextType = TYPE_CYCLE[round % 3];
-  if (!confirm('清空本轮答题进度，进入第 ' + (round + 1) + ' 轮？\n同一批考点将换成「' + TYPE_NAME[nextType] + '」为主重新考。')) return;
+  if (!confirm('清空全部答题进度，重新开始？')) return;
   progress = {}; saveProgress();
-  round++; saveRound();
   location.reload();
 };
 
@@ -270,7 +261,7 @@ const secEls = {};   // 章节名 -> [顶部统计条, 底部统计条] 的文�
 function mkStat(sec) {
   const d = document.createElement('div');
   d.className = 'secstat'; d.dataset.sec = sec;
-  d.innerHTML = `<span>📊 <b>${sec}</b></span><span class="sv">本轮已答 0/0 · 正确率 —</span>`;
+  d.innerHTML = `<span>📊 <b>${sec}</b></span><span class="sv">已答 0/0 · 正确率 —</span>`;
   (secEls[sec] = secEls[sec] || []).push(d.querySelector('.sv'));
   return d;
 }
